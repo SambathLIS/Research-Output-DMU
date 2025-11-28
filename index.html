@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Faculty Research Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bits-navy-primary: #02075d;
+            --bits-navy-secondary: #000080;
+            --bits-navy-accent: #1a165aF0;
+            --bits-red: #cc0000;
+            --light-bg: #f7f9fc;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --card-bg: white;
+            --dropdown-border: #ccc;
+            --tooltip-bg: rgba(26, 22, 90, 0.9);
+            --tooltip-color: #fff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            color: var(--bits-navy-primary);
+            padding: 15px 50px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-logo {
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .header-title-container {
+            flex-grow: 1;
+            color: var(--bits-navy-accent);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 600;
+            color: var(--bits-navy-primary);
+            text-align: left;
+        }
+
+        .main-content {
+            padding: 30px 50px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .metrics-grid {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .metric-card h2 {
+            color: var(--bits-navy-primary);
+            font-size: 1.1em;
+            margin-top: 0;
+            border-bottom: 2px solid var(--bits-navy-secondary);
+            padding-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--bits-red);
+            margin: 5px 0 0;
+        }
+
+        .chart-section {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+            margin-bottom: 40px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            width: 100%;
+        }
+
+        .publications-section {
+            background-color: #F0F0F5;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            padding: 25px;
+        }
+
+        .publications-section h2 {
+            color: #1a1a1a;
+            font-size: 1.6em;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .table-controls-top {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .table-controls-top input[type='text'] {
+            padding: 10px 15px;
+            border: 1px solid var(--dropdown-border);
+            border-radius: 5px;
+            font-size: 1em;
+            width: 350px;
+            max-width: 100%;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            height: 40px;
+        }
+
+        .filter-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .filter-button {
+            background-color: #f0f0f0;
+            color: #333;
+            padding: 10px 15px;
+            border: 1px solid var(--dropdown-border);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            height: 40px;
+        }
+
+        .filter-button:hover {
+            background-color: #e5e5e5;
+        }
+
+        .filter-content {
+            display: none;
+            position: absolute;
+            background-color: var(--card-bg);
+            min-width: 220px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            border: 1px solid var(--dropdown-border);
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            left: 0;
+        }
+
+        .filter-dropdown.open .filter-content {
+            display: block;
+        }
+
+        .filter-option {
+            padding: 7px 0;
+            font-size: 0.95em;
+        }
+
+        .filter-option label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+
+        .filter-option input[type='checkbox'] {
+            margin-right: 0;
+            transform: scale(1.1);
+        }
+
+        .filter-count {
+            color: #777;
+            font-size: 0.9em;
+            margin-left: auto;
+        }
+
+        .data-table-container {
+            border: 1px solid #eee;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: #ffffff;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            table-layout: fixed;
+        }
+
+        th {
+            background-color: rgb(250, 250, 255);
+            color: #0000A3;
+            text-align: left;
+            padding: 12px 15px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: top;
+            word-wrap: break-word;
+            color: #222;
+        }
+
+        tr:hover {
+            background-color: #FFFFFF !important;
+        }
+
+        .table-link {
+            color: var(--bits-navy-secondary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .table-link:hover {
+            text-decoration: underline;
+        }
+
+        .pub-authors b a,
+        .pub-authors b {
+            color: #333;
+            font-weight: 700;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .table-controls-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-buttons button {
+            background-color: var(--card-bg);
+            color: var(--bits-navy-primary);
+            border: 1px solid var(--dropdown-border);
+            padding: 5px 10px;
+            margin: 0 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .pagination-buttons button:hover:not(:disabled) {
+            background-color: #cce0ff;
+        }
+
+        .pagination-buttons button.active {
+            background-color: var(--bits-navy-primary);
+            color: white;
+            border-color: var(--bits-navy-primary);
+        }
+
+        .pagination-buttons button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .results-per-page select {
+            padding: 5px 8px;
+            border: 1px solid var(--dropdown-border);
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: pointer;
+            border-bottom: 1px dotted var(--bits-navy-secondary);
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: max-content;
+            max-width: 300px;
+            background-color: var(--tooltip-bg);
+            color: var(--tooltip-color);
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85em;
+            line-height: 1.3em;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .orcid-icon {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 6px;
+            width: 16px;
+            height: 16px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            color: #ffffff;
+            font-size: 1em;
+            background-color: var(--bits-navy-accent);
+        }
+
+        /* ---------- Responsive tweaks ---------- */
+
+        @media (max-width: 992px) {
+            header {
+                padding: 10px 20px;
+            }
+            .main-content {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.4em;
+            }
+            .metrics-grid {
+                flex-direction: column;
+            }
+            .metric-card {
+                padding: 15px;
+            }
+            .chart-section,
+            .publications-section {
+                padding: 15px;
+            }
+            .table-controls-top {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-dropdown {
+                width: 100%;
+            }
+            .filter-button {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .table-controls-bottom {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .main-content {
+                padding: 15px;
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-logo {
+                height: 60px;
+            }
+            table {
+                min-width: 700px;
+            }
+            .data-table-container {
+                overflow-x: auto; /* horizontal scroll for narrow screens */
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img
+        src="https://www.bits-pilani.ac.in/wp-content/webp-express/webp-images/uploads/bits-dubai-campus-color-1.png.webp"
+        alt="BITS Pilani Dubai Campus Logo"
+        class="header-logo"
+    />
+    <div class="header-title-container">
+        <h1>Faculty Research Dashboard</h1>
+    </div>
+</header>
+
+<div class="main-content">
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h2>Total Research Works</h2>
+            <p class="metric-value" id="works-count">0</p>
+        </div>
+
+        <div class="metric-card">
+            <h2>Total Citations Received</h2>
+            <p class="metric-value" id="citation-count">0</p>
+        </div>
+
+        <div class="metric-card">
+            <h2>Average Citations/Work</h2>
+            <p class="metric-value" id="avg-citations">0.0</p>
+        </div>
+    </div>
+
+    <div class="chart-section">
+        <h2>Published Papers by Year</h2>
+        <div class="chart-container">
+            <canvas id="papersByYearChart"></canvas>
+        </div>
+    </div>
+
+    <div class="publications-section">
+        <h2>Publications List</h2>
+
+        <div class="table-controls-top">
+            <input type="text" id="search-input" placeholder="Search by title, author, DOI..." />
+
+            <div id="type-filter-dropdown" class="filter-dropdown">
+                <button class="filter-button" onclick="toggleDropdown('type-filter-dropdown')">
+                    Document Type <span id="type-filter-count"></span>
+                </button>
+                <div id="type-filter-content" class="filter-content">
+                    <div class="no-results" style="padding: 10px; font-style: normal;">Loading Types...</div>
+                </div>
+            </div>
+
+            <div id="year-filter-dropdown" class="filter-dropdown">
+                <button class="filter-button" onclick="toggleDropdown('year-filter-dropdown')">
+                    Year <span id="year-filter-count"></span>
+                </button>
+                <div id="year-filter-content" class="filter-content">
+                    <div class="no-results" style="padding: 10px; font-style: normal;">Loading Years...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-table-container">
+            <table id="publications-table">
+                <thead>
+                <tr>
+                    <th style="width: 30%;">Title</th>
+                    <th style="width: 8%;">Year</th>
+                    <th style="width: 30%;">Authors</th>
+                    <th style="width: 7%;">Cited by</th>
+                    <th style="width: 10%;">Type</th>
+                    <th style="width: 15%;">DOI</th>
+                </tr>
+                </thead>
+                <tbody id="publications-tbody">
+                <tr class="no-results-row">
+                    <td colspan="6" class="no-results">Loading publications...</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-controls-bottom">
+            <div id="page-info">Showing 0 to 0 of 0 entries</div>
+
+            <div class="results-per-page">
+                Entries per page:
+                <select id="results-per-page-select" onchange="changeResultsPerPage(this.value)">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <div id="pagination-buttons" class="pagination-buttons"></div>
+        </div>
+    </div>
+</div>
+
+<footer>Developed by Sambath Kumar N | Data retrieved from OpenAlex</footer>
+
+<script>
+    const INSTITUTION_ID = "I4210164135";
+    const MAILTO_EMAIL = "user@example.com";
+
+    const INST_API_URL = `https://api.openalex.org/institutions/${INSTITUTION_ID}?mailto=${MAILTO_EMAIL}`;
+    const WORKS_BASE_API_URL =
+        `https://api.openalex.org/works?filter=institutions.id:${INSTITUTION_ID}` +
+        `&sort=publication_date:desc&per_page=200&select=id,title,authorships,publication_date,doi,cited_by_count,type&mailto=${MAILTO_EMAIL}`;
+    const YEAR_COUNT_API_URL =
+        `https://api.openalex.org/works?filter=institutions.id:${INSTITUTION_ID}` +
+        `&group_by=publication_year&per_page=200&mailto=${MAILTO_EMAIL}`;
+    const TYPE_COUNT_API_URL =
+        `https://api.openalex.org/works?filter=institutions.id:${INSTITUTION_ID}` +
+        `&group_by=type&per_page=200&mailto=${MAILTO_EMAIL}`;
+
+    let allPublications = [];
+    let filteredPublications = [];
+    let myChart = null;
+
+    let selectedTypes = new Set();
+    let selectedYears = new Set();
+
+    let currentPage = 1;
+    let resultsPerPage = 10;
+
+    const updateMetric = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value.toLocaleString(undefined, {
+                maximumFractionDigits: id === "avg-citations" ? 1 : 0
+            });
+        }
+    };
+
+    const orcidSVG =
+        '<svg class="orcid-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true" focusable="false">' +
+        '<circle cx="128" cy="128" r="128" fill="#A6CE39"/>' +
+        '<path fill="#FFFFFF" d="M86.3 90.8c0 5.5-4.2 9.9-10.4 9.9-6 0-10.2-4.4-10.2-9.9 0-5.7 4.3-10 10.3-10 6.2 0 10.3 4.3 10.3 10zM67 176.6V108h18.3v68.6H67zM115.6 108h17.5v11.3h.3c2.4-4.5 8.3-11.9 20.5-11.9 13.1 0 23 8.6 23 27.1v41.1h-18.3v-38.4c0-8.1-3-14.3-10.5-14.3-5.7 0-9.1 3.8-10.6 7.5-.5 1.2-.6 2.8-.6 4.4v40.8h-18.3V108z"/>' +
+        '<rect x="115.6" y="74.7" width="17.6" height="17.6" fill="#FFFFFF"/>' +
+        '</svg>';
+
+    const formatAuthors = (authorships) => {
+        const targetInstId = INSTITUTION_ID.toUpperCase().replace("HTTPS://OPENALEX.ORG/", "");
+
+        const formatted = authorships.map((a) => {
+            const authorName = a.author.display_name || "Unknown Author";
+            const authorId = (a.author.id || "").replace("https://openalex.org/", "");
+            const authorURL = authorId ? `https://openalex.org/${authorId}` : "#";
+
+            const isBitsDubaiAuthor = (a.institutions || []).some(
+                (inst) =>
+                    inst.id &&
+                    inst.id.toUpperCase().replace("HTTPS://OPENALEX.ORG/", "") === targetInstId
+            );
+
+            let orcidUrl = a.author.orcid || null;
+            if (orcidUrl && !orcidUrl.startsWith("http")) {
+                orcidUrl = `https://orcid.org/${orcidUrl}`;
+            }
+
+            const affiliationNames = (a.institutions || [])
+                .map((inst) => inst.display_name)
+                .filter(Boolean)
+                .join("; ");
+            const tooltipContent = affiliationNames || "Affiliation unknown";
+
+            let inner =
+                `<a href="${authorURL}" target="_blank" class="table-link tooltip">` +
+                `${authorName}<span class="tooltiptext">${tooltipContent}</span></a>`;
+
+            if (orcidUrl) {
+                inner += `<a href="${orcidUrl}" target="_blank" rel="noopener noreferrer" aria-label="ORCID profile">${orcidSVG}</a>`;
+            }
+
+            return isBitsDubaiAuthor ? `<b>${inner}</b>` : inner;
+        });
+
+        const display = formatted.slice(0, 3).join(", ");
+        const suffix = authorships.length > 3 ? ", et al." : "";
+        return `<span class="pub-authors">${display}${suffix}</span>`;
+    };
+
+    const createTableRow = (work) => {
+        const row = document.createElement("tr");
+
+        const title = work.title || "[No Title Available]";
+        const authorsHTML = formatAuthors(work.authorships || []);
+        const date = work.publication_date
+            ? new Date(work.publication_date).getFullYear()
+            : "N/A";
+        const link = work.doi
+            ? `https://doi.org/${work.doi}`
+            : `https://openalex.org/${work.id}`;
+
+        const hyperlinkedTitle =
+            `<a href="${link}" target="_blank" class="table-link" title="View DOI / OpenAlex Page">` +
+            `${title}</a>`;
+
+        const displayType = work.type
+            ? work.type.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+            : "N/A";
+
+        const doiLink = work.doi
+            ? `<a href="https://doi.org/${work.doi}" target="_blank" class="table-link">${work.doi}</a>`
+            : "N/A";
+
+        const hasBitsDubaiAuthor = (work.authorships || []).some((a) =>
+            (a.institutions || []).some(
+                (inst) =>
+                    inst.id &&
+                    inst.id.toUpperCase().replace("HTTPS://OPENALEX.ORG/", "") ===
+                        INSTITUTION_ID.toUpperCase()
+            )
+        );
+        if (hasBitsDubaiAuthor) {
+            row.style.backgroundColor = "#e6f0ff";
+        }
+
+        row.innerHTML = `
+            <td>${hyperlinkedTitle}</td>
+            <td>${date}</td>
+            <td>${authorsHTML}</td>
+            <td>${work.cited_by_count}</td>
+            <td>${displayType}</td>
+            <td>${doiLink}</td>
+        `;
+        return row;
+    };
+
+    window.toggleDropdown = (id) => {
+        const dropdown = document.getElementById(id);
+        document.querySelectorAll(".filter-dropdown.open").forEach((openDropdown) => {
+            if (openDropdown.id !== id) {
+                openDropdown.classList.remove("open");
+            }
+        });
+        dropdown.classList.toggle("open");
+    };
+
+    const updateSelectedFilters = (key, value, type, isChecked) => {
+        const filterSet = type === "type" ? selectedTypes : selectedYears;
+
+        if (isChecked) {
+            filterSet.add(value);
+        } else {
+            filterSet.delete(value);
+        }
+
+        const countElement = document.getElementById(`${type}-filter-count`);
+        countElement.textContent = filterSet.size > 0 ? ` (${filterSet.size})` : "";
+
+        currentPage = 1;
+        clearTimeout(window.filterTimeout);
+        window.filterTimeout = setTimeout(applyFilters, 200);
+    };
+
+    const applyFilters = () => {
+        const query = document.getElementById("search-input").value.toLowerCase().trim();
+
+        filteredPublications = allPublications.filter((work) => {
+            const matchesSearch =
+                (work.title || "").toLowerCase().includes(query) ||
+                (work.authorships || []).some((a) =>
+                    (a.author.display_name || "").toLowerCase().includes(query)
+                ) ||
+                (work.doi || "").toLowerCase().includes(query);
+
+            const publicationType = work.type;
+            const publicationYear = work.publication_date
+                ? new Date(work.publication_date).getFullYear().toString()
+                : "N/A";
+
+            const matchesType =
+                selectedTypes.size === 0 || selectedTypes.has(publicationType);
+            const matchesYear =
+                selectedYears.size === 0 || selectedYears.has(publicationYear);
+
+            return matchesSearch && matchesType && matchesYear;
+        });
+
+        renderPublications(filteredPublications);
+    };
+
+    const renderFilterCheckbox = (containerId, key, count, type) => {
+        const container = document.getElementById(containerId);
+        let displayKey = key.replace(/^https:\/\/openalex\.org\/types\//i, "");
+        displayKey = displayKey.split("(")[0].trim();
+        displayKey = displayKey.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+        const id = `${type}-${key.replace(/[\s\W]+/g, "-")}-checkbox`;
+
+        const div = document.createElement("div");
+        div.className = "filter-option";
+        div.innerHTML = `
+            <label for="${id}">
+                <input type="checkbox" id="${id}" value="${key}">
+                <span class="filter-text">${displayKey}</span> 
+                <span class="filter-count">(${count.toLocaleString()})</span>
+            </label>
+        `;
+
+        const checkbox = div.querySelector("input");
+        checkbox.addEventListener("change", (event) => {
+            updateSelectedFilters(displayKey, key, type, event.target.checked);
+        });
+
+        container.appendChild(div);
+    };
+
+    const changePage = (pageNumber) => {
+        if (
+            pageNumber < 1 ||
+            pageNumber > Math.ceil(filteredPublications.length / resultsPerPage)
+        )
+            return;
+        currentPage = pageNumber;
+        renderPublications(filteredPublications);
+    };
+
+    const changeResultsPerPage = (value) => {
+        resultsPerPage = parseInt(value, 10);
+        currentPage = 1;
+        renderPublications(filteredPublications);
+    };
+
+    const renderPageControls = (totalResults) => {
+        const totalPages = Math.ceil(totalResults / resultsPerPage);
+        const buttonsContainer = document.getElementById("pagination-buttons");
+        const infoElement = document.getElementById("page-info");
+        buttonsContainer.innerHTML = "";
+
+        if (totalResults === 0) {
+            infoElement.textContent = "Showing 0 to 0 of 0 entries";
+            return;
+        }
+
+        const start = (currentPage - 1) * resultsPerPage + 1;
+        const end = Math.min(currentPage * resultsPerPage, totalResults);
+        infoElement.textContent =
+            `Showing ${start.toLocaleString()} to ${end.toLocaleString()} of ${totalResults.toLocaleString()} entries`;
+
+        const prevButton = document.createElement("button");
+        prevButton.textContent = "Previous";
+        prevButton.disabled = currentPage === 1;
+        prevButton.onclick = () => changePage(currentPage - 1);
+        buttonsContainer.appendChild(prevButton);
+
+        const maxButtons = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+        if (endPage - startPage + 1 < maxButtons) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+
+        if (startPage > 1) {
+            buttonsContainer.appendChild(createPageButton(1, currentPage));
+            if (startPage > 2) {
+                const dots = document.createElement("span");
+                dots.textContent = "...";
+                dots.style.padding = "0 5px";
+                buttonsContainer.appendChild(dots);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            buttonsContainer.appendChild(createPageButton(i, currentPage));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dots = document.createElement("span");
+                dots.textContent = "...";
+                dots.style.padding = "0 5px";
+                buttonsContainer.appendChild(dots);
+            }
+            buttonsContainer.appendChild(createPageButton(totalPages, currentPage));
+        }
+
+        const nextButton = document.createElement("button");
+        nextButton.textContent = "Next";
+        nextButton.disabled = currentPage === totalPages;
+        nextButton.onclick = () => changePage(currentPage + 1);
+        buttonsContainer.appendChild(nextButton);
+    };
+
+    const createPageButton = (pageNumber, currentPage) => {
+        const pageButton = document.createElement("button");
+        pageButton.textContent = pageNumber;
+        pageButton.className = pageNumber === currentPage ? "active" : "";
+        pageButton.onclick = () => changePage(pageNumber);
+        return pageButton;
+    };
+
+    const fetchAndRenderFilters = async () => {
+        const typeContainer = document.getElementById("type-filter-content");
+        const yearContainer = document.getElementById("year-filter-content");
+
+        try {
+            const typeResponse = await fetch(TYPE_COUNT_API_URL);
+            const typeData = await typeResponse.json();
+            typeContainer.innerHTML = "";
+            (typeData.group_by || [])
+                .sort((a, b) => b.count - a.count)
+                .forEach((item) => {
+                    renderFilterCheckbox("type-filter-content", item.key, item.count, "type");
+                });
+        } catch (error) {
+            console.error("Failed to fetch publication types:", error);
+            typeContainer.innerHTML = `<div class="no-results">Error loading types.</div>`;
+        }
+
+        try {
+            const yearResponse = await fetch(YEAR_COUNT_API_URL);
+            const yearData = await yearResponse.json();
+            yearContainer.innerHTML = "";
+            (yearData.group_by || [])
+                .filter((item) => item.key && parseInt(item.key, 10) <= 2026)
+                .sort((a, b) => parseInt(b.key, 10) - parseInt(a.key, 10))
+                .forEach((item) => {
+                    renderFilterCheckbox("year-filter-content", item.key, item.count, "year");
+                });
+        } catch (error) {
+            console.error("Failed to fetch publication years:", error);
+            yearContainer.innerHTML = `<div class="no-results">Error loading years.</div>`;
+        }
+    };
+
+    const fetchAndRenderYearlyChart = async () => {
+        const ctx = document.getElementById("papersByYearChart");
+        try {
+            const response = await fetch(YEAR_COUNT_API_URL);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+
+            const yearDataMap = new Map();
+            (data.group_by || []).forEach((item) => {
+                if (item.key) {
+                    yearDataMap.set(parseInt(item.key, 10), item.count);
+                }
+            });
+
+            const yearsArray = Array.from(yearDataMap.keys());
+            const minYear = yearsArray.length ? Math.min(...yearsArray, 2000) : 2000;
+
+            // ensure chart goes at least up to 2025
+            const currentYear = new Date().getFullYear();
+            const maxDesiredYear = Math.max(2025, currentYear);
+
+            const years = [];
+            const counts = [];
+            for (let year = minYear; year <= maxDesiredYear; year++) {
+                years.push(year.toString());
+                counts.push(yearDataMap.get(year) || 0);
+            }
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            const gradient = ctx
+                .getContext("2d")
+                .createLinearGradient(0, 0, 0, ctx.height || 400);
+            gradient.addColorStop(0, "rgba(2, 7, 93, 0.9)");
+            gradient.addColorStop(1, "rgba(0, 0, 128, 0.7)");
+
+            myChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: "Number of Published Papers",
+                            data: counts,
+                            backgroundColor: gradient,
+                            borderColor: "rgba(2, 7, 93, 1)",
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: `Total Works Published Per Year (Up to ${maxDesiredYear})`,
+                            font: { size: 16 },
+                            color: "#02075d"
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "Paper Count", color: "#02075d" },
+                            ticks: { color: "#02075d" }
+                        },
+                        x: {
+                            title: { display: true, text: "Publication Year", color: "#02075d" },
+                            ticks: { color: "#02075d" }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Failed to fetch yearly chart data:", error);
+            if (ctx && ctx.parentElement) {
+                ctx.parentElement.innerHTML =
+                    `<p class="no-results">Error loading yearly chart data.</p>`;
+            }
+        }
+    };
+
+    const fetchAggregatedMetrics = async () => {
+        try {
+            const response = await fetch(INST_API_URL);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+
+            updateMetric("works-count", data.works_count);
+            updateMetric("citation-count", data.cited_by_count);
+
+            if (data.works_count > 0) {
+                updateMetric("avg-citations", data.cited_by_count / data.works_count);
+            } else {
+                updateMetric("avg-citations", 0.0);
+            }
+        } catch (error) {
+            console.error("Failed to fetch aggregated OpenAlex data:", error);
+            updateMetric("works-count", "Error");
+            updateMetric("citation-count", "Error");
+            updateMetric("avg-citations", "Error");
+        }
+    };
+
+    const fetchAllPublications = async () => {
+        let next_cursor = "*";
+        let allResults = [];
+        const WORKS_PER_PAGE = 200;
+
+        const tbody = document.getElementById("publications-tbody");
+        tbody.innerHTML =
+            `<tr class="no-results-row"><td colspan="6" class="no-results">` +
+            `Fetching <strong>ALL</strong> publications (This may take a moment)...</td></tr>`;
+
+        try {
+            while (next_cursor) {
+                const url = `${WORKS_BASE_API_URL}&cursor=${next_cursor}&per_page=${WORKS_PER_PAGE}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.results && data.results.length > 0) {
+                    allResults = allResults.concat(data.results);
+                    next_cursor = data.meta.next_cursor;
+
+                    tbody.innerHTML =
+                        `<tr class="no-results-row"><td colspan="6" class="no-results">` +
+                        `Fetched ${allResults.length.toLocaleString()} records so far...</td></tr>`;
+                } else {
+                    next_cursor = null;
+                }
+            }
+            return allResults;
+        } catch (error) {
+            console.error("Failed to fetch all works list:", error);
+            tbody.innerHTML =
+                `<tr class="no-results-row"><td colspan="6" class="no-results">` +
+                `Error loading publications. Please check the network connection.</td></tr>`;
+            return [];
+        }
+    };
+
+    const fetchAndRenderPublications = async () => {
+        allPublications = await fetchAllPublications();
+        filteredPublications = allPublications;
+
+        if (allPublications.length > 0) {
+            renderPublications(filteredPublications);
+        } else {
+            const tbody = document.getElementById("publications-tbody");
+            tbody.innerHTML =
+                `<tr class="no-results-row"><td colspan="6" class="no-results">` +
+                `No publications found for this institution.</td></tr>`;
+        }
+    };
+
+    const renderPublications = (publications) => {
+        const tbody = document.getElementById("publications-tbody");
+        tbody.innerHTML = "";
+
+        if (publications.length === 0) {
+            tbody.innerHTML =
+                `<tr class="no-results-row"><td colspan="6" class="no-results">` +
+                `No publications found matching the search criteria or current filters.</td></tr>`;
+            renderPageControls(0);
+            return;
+        }
+
+        const startIndex = (currentPage - 1) * resultsPerPage;
+        const endIndex = startIndex + resultsPerPage;
+        const publicationsToDisplay = publications.slice(startIndex, endIndex);
+
+        publicationsToDisplay.forEach((work) => {
+            tbody.appendChild(createTableRow(work));
+        });
+
+        renderPageControls(publications.length);
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        fetchAggregatedMetrics();
+        fetchAndRenderYearlyChart();
+        fetchAndRenderPublications();
+        fetchAndRenderFilters();
+
+        document.addEventListener("click", (event) => {
+            document.querySelectorAll(".filter-dropdown").forEach((dropdown) => {
+                if (!dropdown.contains(event.target)) {
+                    dropdown.classList.remove("open");
+                }
+            });
+        });
+
+        const searchInput = document.getElementById("search-input");
+        searchInput.addEventListener("input", () => {
+            currentPage = 1;
+            clearTimeout(window.filterTimeout);
+            window.filterTimeout = setTimeout(applyFilters, 200);
+        });
+    });
+</script>
+</body>
+</html>
